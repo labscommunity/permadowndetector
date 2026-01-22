@@ -10,7 +10,7 @@ PermaDown Detector is a static single-page application that monitors website ava
 
 - **Single file architecture**: All HTML, CSS, and JavaScript are contained in `index.html`
 - **No build process**: The application is purely static with no compilation or bundling required
-- **CDN dependencies**: Bulma CSS and Font Awesome are loaded from CDNs
+- **CDN dependencies**: Bulma CSS is loaded from Arweave, Font Awesome from cdnjs
 
 ## How It Works
 
