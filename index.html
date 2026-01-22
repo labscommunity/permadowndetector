@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PermaDown Detector - Website Status Monitor</title>
+    <link rel="stylesheet" href="https://arweave.net/X7FBenkElBz9nWrIhHGf7QZWQ54KMdpzDXfO4c-15Ns">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-card-hover: #1f3460;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --status-up: #00d26a;
+            --status-down: #ff4757;
+            --status-checking: #ffa502;
+            --accent: #0f3460;
+        }
+
+        html, body {
+            background-color: var(--bg-dark);
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--accent) 100%);
+        }
+
+        .hero .title, .hero .subtitle {
+            color: var(--text-primary);
+        }
+
+        .status-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            height: 100%;
+        }
+
+        .status-card:hover {
+            background-color: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+
+        .status-card.is-down {
+            border-color: var(--status-down);
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
+        }
+
+        .status-card.is-up {
+            border-color: var(--status-up);
+        }
+
+        .status-card.is-checking {
+            border-color: var(--status-checking);
+        }
+
+        .site-logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            margin-bottom: 1rem;
+            filter: grayscale(100%);
+            transition: filter 0.3s ease;
+        }
+
+        .status-card.is-up .site-logo {
+            filter: grayscale(0%);
+        }
+
+        .status-card.is-down .site-logo {
+            filter: grayscale(0%) brightness(0.8);
+        }
+
+        .site-name {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-indicator.up {
+            background-color: rgba(0, 210, 106, 0.2);
+            color: var(--status-up);
+        }
+
+        .status-indicator.down {
+            background-color: rgba(255, 71, 87, 0.2);
+            color: var(--status-down);
+        }
+
+        .status-indicator.checking {
+            background-color: rgba(255, 165, 2, 0.2);
+            color: var(--status-checking);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.up {
+            background-color: var(--status-up);
+        }
+
+        .status-dot.down {
+            background-color: var(--status-down);
+            animation: pulse-down 1s infinite;
+        }
+
+        .status-dot.checking {
+            background-color: var(--status-checking);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes pulse-down {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .summary-section {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .summary-number.up { color: var(--status-up); }
+        .summary-number.down { color: var(--status-down); }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .refresh-btn.is-loading {
+            pointer-events: none;
+        }
+
+        .last-checked {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .footer {
+            background-color: var(--bg-dark);
+            color: var(--text-secondary);
+            padding: 2rem;
+        }
+
+        .down-alert {
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.2) 0%, rgba(255, 71, 87, 0.1) 100%);
+            border: 1px solid var(--status-down);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .down-alert.is-visible {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .down-alert-title {
+            color: var(--status-down);
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .down-alert-text {
+            color: var(--text-secondary);
+        }
+
+        .section {
+            background-color: var(--bg-dark);
+        }
+
+        .footer-title {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <section class="hero is-medium">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <h1 class="title is-1">
+                    <i class="fas fa-signal"></i> PermaDown Detector
+                </h1>
+                <p class="subtitle">
+                    Real-time website status monitoring - Permanently available on Arweave
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <!-- Alert for down services -->
+            <div id="downAlert" class="down-alert">
+                <div class="down-alert-title">
+                    <i class="fas fa-exclamation-triangle"></i> Services Experiencing Issues
+                </div>
+                <div class="down-alert-text" id="downAlertText">
+                    Some services may be experiencing outages or connectivity issues.
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <div class="columns is-vcentered">
+                    <div class="column">
+                        <div class="columns is-mobile">
+                            <div class="column summary-stat">
+                                <div class="summary-number up" id="upCount">-</div>
+                                <div class="summary-label">Services Up</div>
+                            </div>
+                            <div class="column summary-stat">
+                                <div class="summary-number down" id="downCount">-</div>
+                                <div class="summary-label">Services Down</div>
+                            </div>
+                            <div class="column summary-stat">
+                                <div class="summary-number" id="totalCount">-</div>
+                                <div class="summary-label">Total Monitored</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-narrow has-text-centered">
+                        <button class="button is-medium refresh-btn" id="refreshBtn" onclick="checkAllSites()">
+                            <span class="icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </span>
+                            <span>Refresh Status</span>
+                        </button>
+                        <p class="last-checked mt-2" id="lastChecked">Last checked: Never</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Cards Grid -->
+            <div class="columns is-multiline" id="statusGrid">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong class="footer-title">PermaDown Detector</strong> - Decentralized Status Monitoring
+            </p>
+            <p>
+                Deployed on <a href="https://arweave.com" target="_blank" rel="noopener">Arweave</a> for permanent availability
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Website configurations
+        const websites = [
+            {
+                name: 'Google',
+                url: 'https://www.google.com',
+                logo: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg',
+                checkUrl: 'https://www.google.com/favicon.ico'
+            },
+            {
+                name: 'YouTube',
+                url: 'https://www.youtube.com',
+                logo: 'https://www.youtube.com/s/desktop/f67e0e7b/img/favicon_144x144.png',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/youtube.svg',
+                checkUrl: 'https://www.youtube.com/favicon.ico'
+            },
+            {
+                name: 'Amazon',
+                url: 'https://www.amazon.com',
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/amazon.svg',
+                checkUrl: 'https://www.amazon.com/favicon.ico'
+            },
+            {
+                name: 'Netflix',
+                url: 'https://www.netflix.com',
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/netflix.svg',
+                checkUrl: 'https://www.netflix.com/favicon.ico'
+            },
+            {
+                name: 'X (Twitter)',
+                url: 'https://x.com',
+                logo: 'https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/x.svg',
+                checkUrl: 'https://x.com/favicon.ico'
+            },
+            {
+                name: 'Verizon',
+                url: 'https://www.verizon.com',
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/8/81/Verizon_2015_logo_-vector.svg',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/verizon.svg',
+                checkUrl: 'https://www.verizon.com/favicon.ico'
+            },
+            {
+                name: 'Downdetector',
+                url: 'https://downdetector.com',
+                logo: 'https://downdetector.com/static/images/logo.png',
+                fallbackLogo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/statuspage.svg',
+                checkUrl: 'https://downdetector.com/favicon.ico'
+            }
+        ];
+
+        // Store status results
+        let siteStatuses = {};
+
+        // Initialize the grid
+        function initializeGrid() {
+            const grid = document.getElementById('statusGrid');
+            grid.innerHTML = '';
+
+            websites.forEach((site, index) => {
+                const card = document.createElement('div');
+                card.className = 'column is-one-third-desktop is-half-tablet';
+                card.innerHTML = `
+                    <div class="status-card is-checking" id="card-${index}">
+                        <div class="has-text-centered">
+                            <img src="${site.logo}" alt="${site.name}" class="site-logo"
+                                 onerror="this.src='${site.fallbackLogo}'; this.style.filter='invert(1)'">
+                            <h3 class="site-name">${site.name}</h3>
+                            <div class="status-indicator checking" id="status-${index}">
+                                <span class="status-dot checking"></span>
+                                <span>Checking...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            document.getElementById('totalCount').textContent = websites.length;
+        }
+
+        // Check a single site using multiple methods
+        async function checkSite(site, index) {
+            const card = document.getElementById(`card-${index}`);
+            const status = document.getElementById(`status-${index}`);
+
+            card.className = 'status-card is-checking';
+            status.className = 'status-indicator checking';
+            status.innerHTML = '<span class="status-dot checking"></span><span>Checking...</span>';
+
+            try {
+                // Method 1: Try loading favicon as image
+                const isUp = await checkViaImage(site.checkUrl);
+
+                siteStatuses[site.name] = isUp;
+
+                if (isUp) {
+                    card.className = 'status-card is-up';
+                    status.className = 'status-indicator up';
+                    status.innerHTML = '<span class="status-dot up"></span><span>Operational</span>';
+                } else {
+                    card.className = 'status-card is-down';
+                    status.className = 'status-indicator down';
+                    status.innerHTML = '<span class="status-dot down"></span><span>Down or Unreachable</span>';
+                }
+            } catch (error) {
+                siteStatuses[site.name] = false;
+                card.className = 'status-card is-down';
+                status.className = 'status-indicator down';
+                status.innerHTML = '<span class="status-dot down"></span><span>Down or Unreachable</span>';
+            }
+
+            updateSummary();
+        }
+
+        // Check site by loading an image (favicon)
+        function checkViaImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const timeout = setTimeout(() => {
+                    resolve(false);
+                }, 5000);
+
+                img.onload = () => {
+                    clearTimeout(timeout);
+                    resolve(true);
+                };
+
+                img.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+
+                // Add cache-busting parameter
+                img.src = url + '?t=' + Date.now();
+            });
+        }
+
+        // Check all sites
+        async function checkAllSites() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('is-loading');
+            btn.disabled = true;
+
+            // Reset statuses
+            siteStatuses = {};
+
+            // Check all sites in parallel
+            const promises = websites.map((site, index) => checkSite(site, index));
+            await Promise.all(promises);
+
+            // Update last checked time
+            const now = new Date();
+            document.getElementById('lastChecked').textContent =
+                `Last checked: ${now.toLocaleTimeString()}`;
+
+            btn.classList.remove('is-loading');
+            btn.disabled = false;
+
+            updateDownAlert();
+        }
+
+        // Update summary counts
+        function updateSummary() {
+            const statuses = Object.values(siteStatuses);
+            const upCount = statuses.filter(s => s === true).length;
+            const downCount = statuses.filter(s => s === false).length;
+
+            document.getElementById('upCount').textContent = upCount;
+            document.getElementById('downCount').textContent = downCount;
+        }
+
+        // Update down alert banner
+        function updateDownAlert() {
+            const alert = document.getElementById('downAlert');
+            const alertText = document.getElementById('downAlertText');
+            const downSites = Object.entries(siteStatuses)
+                .filter(([name, status]) => status === false)
+                .map(([name]) => name);
+
+            if (downSites.length > 0) {
+                alert.classList.add('is-visible');
+                alertText.textContent = `The following services may be experiencing issues: ${downSites.join(', ')}`;
+            } else {
+                alert.classList.remove('is-visible');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGrid();
+            checkAllSites();
+        });
+    </script>
+</body>
+</html>
